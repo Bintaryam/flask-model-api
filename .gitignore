@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+*.py~
+.DS_Store
+venv/
+key.json

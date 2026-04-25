@@ -1,20 +1,72 @@
-from flask import Flask, request, jsonify # Import Flask and related modules
+from flask import Flask, request, jsonify, render_template_string
 
-app = Flask(__name__) # Create a Flask app instance
+app = Flask(__name__)
 
-class DummyModel: # Define a dummy model class
-    def predict(self, X): # Implement a simple prediction method that sums each row of the input
-        return [sum(row) for row in X] # Return the sum of each row as the prediction
+class DummyModel:
+    def predict(self, X):
+        return [sum(row) for row in X]
 
-MODEL = DummyModel() # Create an instance of the dummy model
+MODEL = DummyModel()
 
-@app.route("/predict", methods=["POST"]) # Define a route for the /predict endpoint that accepts POST requests
+# --- HTML PAGE ---
+HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Flask ML API</title>
+</head>
+<body>
+    <h1>Number Sum Predictor</h1>
+
+    <p>Enter rows of numbers (comma separated):</p>
+
+    <textarea id="numbers" rows="6" cols="40">1,2,3
+10,20,30</textarea>
+    <br><br>
+
+    <button onclick="predict()">Predict</button>
+
+    <h2>Result:</h2>
+    <pre id="result"></pre>
+
+    <script>
+        async function predict() {
+            const text = document.getElementById("numbers").value;
+
+            const X = text
+                .split("\\n")
+                .filter(line => line.trim() !== "")
+                .map(line => line.split(",").map(Number));
+
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ X: X })
+            });
+
+            const data = await response.json();
+            document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+        }
+    </script>
+</body>
+</html>
+"""
+
+# --- HOME PAGE ---
+@app.route("/")
+def home():
+    return render_template_string(HTML)
+
+# --- API ENDPOINT ---
+@app.route("/predict", methods=["POST"])
 def predict():
-    data = request.get_json() # Get the JSON data from the request
-    X = data["X"] # Extract the input data (X) from the JSON payload
-    y = MODEL.predict(X) # Use the model to make predictions based on the input data
-    return jsonify({"y": y}), 200 # Return the predictions as a JSON response with a 200 OK status code
+    data = request.get_json()
+    X = data["X"]
+    y = MODEL.predict(X)
+    return jsonify({"y": y}), 200
 
-# Run the Flask app
+# --- RUN APP ---
 if __name__ == "__main__":
     app.run(debug=True)
